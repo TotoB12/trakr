@@ -7,3 +7,13 @@ html, body {
 #map {
   height: 100%;
 }
+
+.train-icon {
+  background-color: red;
+  border-radius: 50%;
+}
+
+.aircraft-icon {
+  background-color: blue;
+  border-radius: 50%;
+}

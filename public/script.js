@@ -88,42 +88,58 @@ const aircraftMarkerClusterGroup = L.markerClusterGroup();
 // };
 
 const updateTrainPositions = () => {
-  fetch('https://api-v3.amtraker.com/v3/trains')
-    .then(response => response.json())
-    .then(trains => {
+  fetch("https://api-v3.amtraker.com/v3/trains")
+    .then((response) => response.json())
+    .then((trains) => {
       trainMarkerClusterGroup.clearLayers();
 
-      Object.values(trains).flat().forEach(train => {
-        const marker = L.marker([train.lat, train.lon]);
+      Object.values(trains)
+        .flat()
+        .forEach((train) => {
+          const marker = L.marker([train.lat, train.lon]);
 
-        marker.bindPopup(`
+          marker.bindPopup(`
           <b>${train.routeName} (${train.trainNum})</b><br>
           ${train.trainTimely}<br>
           From: ${train.origName} (${train.origCode})<br>
           To: ${train.destName} (${train.destCode})
         `);
 
-        trainMarkerClusterGroup.addLayer(marker);
-      });
+          trainMarkerClusterGroup.addLayer(marker);
+        });
 
       trainMarkerClusterGroup.addTo(map);
     })
-    .catch(error => console.error('Error:', error));
+    .catch((error) => console.error("Error:", error));
 };
 
 const updateAircraftPositions = () => {
-  fetch('https://opensky-network.org/api/states/all')
-    .then(response => response.json())
-    .then(data => {
+  fetch("https://opensky-network.org/api/states/all")
+    .then((response) => response.json())
+    .then((data) => {
       aircraftMarkerClusterGroup.clearLayers();
 
-      data.states.forEach(state => {
-        const [icao24, callsign, origin_country, , , longitude, latitude, baro_altitude, on_ground, velocity, true_track] = state;
+      data.states.forEach((state) => {
+        const [
+          icao24,
+          callsign,
+          origin_country,
+          ,
+          ,
+          longitude,
+          latitude,
+          baro_altitude,
+          on_ground,
+          velocity,
+          true_track,
+        ] = state;
 
         if (latitude !== null && longitude !== null) {
           const marker = L.marker([latitude, longitude]);
 
-          let popupContent = `<b>${callsign || 'Unknown Callsign'}</b><br>Origin: ${origin_country || 'Unknown'}`;
+          let popupContent = `<b>${
+            callsign || "Unknown Callsign"
+          }</b><br>Origin: ${origin_country || "Unknown"}`;
 
           if (baro_altitude !== null) {
             popupContent += `<br>Altitude: ${baro_altitude.toFixed(2)} m`;
@@ -145,7 +161,7 @@ const updateAircraftPositions = () => {
 
       aircraftMarkerClusterGroup.addTo(map);
     })
-    .catch(error => console.error('Error:', error));
+    .catch((error) => console.error("Error:", error));
 };
 
 updateAircraftPositions();

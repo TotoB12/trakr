@@ -1,187 +1,165 @@
-const map = L.map("map").setView([38.8977, -77.0365], 5);
+mapboxgl.accessToken = 'pk.eyJ1IjoidG90b2IxMjE3IiwiYSI6ImNsbXo4NHdocjA4dnEya215cjY0aWJ1cGkifQ.OMzA6Q8VnHLHZP-P8ACBRw';
 
-L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-  attribution:
-    'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors',
-  maxZoom: 18,
-}).addTo(map);
-
-const trainMarkers = [];
-const aircraftMarkers = [];
-
-// const trainMarkerClusterGroup = L.markerClusterGroup();
-// const aircraftMarkerClusterGroup = L.markerClusterGroup();
-
-// Create a custom icon for trains
-const trainIcon = L.divIcon({
-  className: 'train-icon',
-  iconSize: [10, 10], // Size of the icon in pixels
-  iconAnchor: [5, 5], // Point of the icon which will correspond to the marker's location
+const map = new mapboxgl.Map({
+  container: 'map',
+  style: 'mapbox://styles/mapbox/streets-v12',
+  center: [-77.0365, 38.8977],
+  zoom: 5,
 });
 
-// Create a custom icon for aircraft
-const aircraftIcon = L.divIcon({
-  className: 'aircraft-icon',
-  iconSize: [10, 10],
-  iconAnchor: [5, 5],
-});
+map.on('load', () => {
+  map.addSource('trains', {
+    type: 'geojson',
+    data: {
+      type: 'FeatureCollection',
+      features: [],
+    },
+  });
 
-const updateTrainPositions = () => {
-  fetch("https://api-v3.amtraker.com/v3/trains")
-    .then((response) => response.json())
-    .then((trains) => {
-      trainMarkers.forEach((marker) => marker.remove());
-      trainMarkers.length = 0;
+  map.addLayer({
+    id: 'trains',
+    type: 'circle',
+    source: 'trains',
+    paint: {
+      'circle-radius': 5,
+      'circle-color': 'red',
+    },
+  });
 
-      Object.values(trains)
-        .flat()
-        .forEach((train) => {
-          const marker = L.marker([train.lat, train.lon], { icon: trainIcon }).addTo(map);
+  map.addSource('aircraft', {
+    type: 'geojson',
+    data: {
+      type: 'FeatureCollection',
+      features: [],
+    },
+  });
 
-          marker.bindPopup(`
-          <b>${train.routeName} (${train.trainNum})</b><br>
-          ${train.trainTimely}<br>
-          From: ${train.origName} (${train.origCode})<br>
-          To: ${train.destName} (${train.destCode})
-        `);
+  map.addLayer({
+    id: 'aircraft',
+    type: 'circle',
+    source: 'aircraft',
+    paint: {
+      'circle-radius': 3,
+      'circle-color': 'blue',
+    },
+  });
 
-          trainMarkers.push(marker);
+  const updateTrainPositions = () => {
+    fetch('https://api-v3.amtraker.com/v3/trains')
+      .then((response) => response.json())
+      .then((trains) => {
+        const features = Object.values(trains)
+          .flat()
+          .map((train) => ({
+            type: 'Feature',
+            geometry: {
+              type: 'Point',
+              coordinates: [train.lon, train.lat],
+            },
+            properties: {
+              name: `${train.routeName} (${train.trainNum})`,
+              timely: train.trainTimely,
+              origin: `${train.origName} (${train.origCode})`,
+              destination: `${train.destName} (${train.destCode})`,
+            },
+          }));
+
+        map.getSource('trains').setData({
+          type: 'FeatureCollection',
+          features,
         });
-    })
-    .catch((error) => console.error("Error:", error));
-};
+      })
+      .catch((error) => console.error('Error:', error));
+  };
 
-const updateAircraftPositions = () => {
-  fetch("https://opensky-network.org/api/states/all")
-    .then((response) => response.json())
-    .then((data) => {
-      aircraftMarkers.forEach((marker) => marker.remove());
-      aircraftMarkers.length = 0;
+  const updateAircraftPositions = () => {
+    fetch('https://opensky-network.org/api/states/all')
+      .then((response) => response.json())
+      .then((data) => {
+        const features = data.states
+          .filter(
+            (state) =>
+              state[6] !== null && state[5] !== null // filter out null lat/lon
+          )
+          .map((state) => ({
+            type: 'Feature',
+            geometry: {
+              type: 'Point',
+              coordinates: [state[5], state[6]], // lon, lat
+            },
+            properties: {
+              callsign: state[1] || 'Unknown Callsign',
+              origin: state[2] || 'Unknown',
+              altitude: state[7] !== null ? `${state[7].toFixed(2)} m` : null,
+              speed: state[9] !== null ? `${state[9].toFixed(2)} m/s` : null,
+              heading: state[10] !== null ? `${state[10].toFixed(2)}°` : null,
+            },
+          }));
 
-      data.states.forEach((state) => {
-        const [
-          icao24,
-          callsign,
-          origin_country,
-          time_position,
-          last_contact,
-          longitude,
-          latitude,
-          baro_altitude,
-          on_ground,
-          velocity,
-          true_track,
-        ] = state;
+        map.getSource('aircraft').setData({
+          type: 'FeatureCollection',
+          features,
+        });
+      })
+      .catch((error) => console.error('Error:', error));
+  };
 
-        if (latitude !== null && longitude !== null) {
-          const marker = L.marker([latitude, longitude], { icon: aircraftIcon }).addTo(map);
+  updateAircraftPositions();
 
-          let popupContent = `<b>${
-            callsign || "Unknown Callsign"
-          }</b><br>Origin: ${origin_country || "Unknown"}`;
+  setInterval(updateAircraftPositions, 60000);
 
-          if (baro_altitude !== null) {
-            popupContent += `<br>Altitude: ${baro_altitude.toFixed(2)} m`;
-          }
+  updateTrainPositions();
 
-          if (velocity !== null) {
-            popupContent += `<br>Speed: ${velocity.toFixed(2)} m/s`;
-          }
+  setInterval(updateTrainPositions, 60000);
 
-          if (true_track !== null) {
-            popupContent += `<br>Heading: ${true_track.toFixed(2)}°`;
-          }
+  map.on('click', 'trains', (e) => {
+    const properties = e.features[0].properties;
+    new mapboxgl.Popup()
+      .setLngLat(e.lngLat)
+      .setHTML(`
+        <b>${properties.name}</b><br>
+        ${properties.timely}<br>
+        From: ${properties.origin}<br>
+        To: ${properties.destination}
+      `)
+      .addTo(map);
+  });
 
-          marker.bindPopup(popupContent);
+  map.on('click', 'aircraft', (e) => {
+    const properties = e.features[0].properties;
+    let popupContent = `<b>${properties.callsign}</b><br>Origin: ${properties.origin}`;
 
-          aircraftMarkers.push(marker);
-        }
-      });
-    })
-    .catch((error) => console.error("Error:", error));
-};
+    if (properties.altitude) {
+      popupContent += `<br>Altitude: ${properties.altitude}`;
+    }
 
-// const updateTrainPositions = () => {
-//   fetch("https://api-v3.amtraker.com/v3/trains")
-//     .then((response) => response.json())
-//     .then((trains) => {
-//       trainMarkerClusterGroup.clearLayers();
+    if (properties.speed) {
+      popupContent += `<br>Speed: ${properties.speed}`;
+    }
 
-//       Object.values(trains)
-//         .flat()
-//         .forEach((train) => {
-//           const marker = L.marker([train.lat, train.lon]);
+    if (properties.heading) {
+      popupContent += `<br>Heading: ${properties.heading}`;
+    }
 
-//           marker.bindPopup(`
-//           <b>${train.routeName} (${train.trainNum})</b><br>
-//           ${train.trainTimely}<br>
-//           From: ${train.origName} (${train.origCode})<br>
-//           To: ${train.destName} (${train.destCode})
-//         `);
+    new mapboxgl.Popup()
+      .setLngLat(e.lngLat)
+      .setHTML(popupContent)
+      .addTo(map);
+  });
 
-//           trainMarkerClusterGroup.addLayer(marker);
-//         });
+  map.on('mouseenter', 'trains', () => {
+    map.getCanvas().style.cursor = 'pointer';
+  });
 
-//       trainMarkerClusterGroup.addTo(map);
-//     })
-//     .catch((error) => console.error("Error:", error));
-// };
+  map.on('mouseleave', 'trains', () => {
+    map.getCanvas().style.cursor = '';
+  });
 
-// const updateAircraftPositions = () => {
-//   fetch("https://opensky-network.org/api/states/all")
-//     .then((response) => response.json())
-//     .then((data) => {
-//       aircraftMarkerClusterGroup.clearLayers();
+  map.on('mouseenter', 'aircraft', () => {
+    map.getCanvas().style.cursor = 'pointer';
+  });
 
-//       data.states.forEach((state) => {
-//         const [
-//           icao24,
-//           callsign,
-//           origin_country,
-//           ,
-//           ,
-//           longitude,
-//           latitude,
-//           baro_altitude,
-//           on_ground,
-//           velocity,
-//           true_track,
-//         ] = state;
-
-//         if (latitude !== null && longitude !== null) {
-//           const marker = L.marker([latitude, longitude]);
-
-//           let popupContent = `<b>${
-//             callsign || "Unknown Callsign"
-//           }</b><br>Origin: ${origin_country || "Unknown"}`;
-
-//           if (baro_altitude !== null) {
-//             popupContent += `<br>Altitude: ${baro_altitude.toFixed(2)} m`;
-//           }
-
-//           if (velocity !== null) {
-//             popupContent += `<br>Speed: ${velocity.toFixed(2)} m/s`;
-//           }
-
-//           if (true_track !== null) {
-//             popupContent += `<br>Heading: ${true_track.toFixed(2)}°`;
-//           }
-
-//           marker.bindPopup(popupContent);
-
-//           aircraftMarkerClusterGroup.addLayer(marker);
-//         }
-//       });
-
-//       aircraftMarkerClusterGroup.addTo(map);
-//     })
-//     .catch((error) => console.error("Error:", error));
-// };
-
-updateAircraftPositions();
-
-setInterval(updateAircraftPositions, 60000);
-
-updateTrainPositions();
-
-setInterval(updateTrainPositions, 60000);
+  map.on('mouseleave', 'aircraft', () => {
+    map.getCanvas().style.cursor = '';
+  });
+});

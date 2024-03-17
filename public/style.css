@@ -8,12 +8,7 @@ html, body {
   height: 100%;
 }
 
-.train-icon {
-  background-color: red;
-  border-radius: 50%;
-}
-
-.aircraft-icon {
-  background-color: blue;
-  border-radius: 50%;
+/* sry */
+.mapboxgl-ctrl-logo {
+    display: none !important;
 }

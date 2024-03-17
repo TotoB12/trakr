@@ -2,12 +2,26 @@ mapboxgl.accessToken = 'pk.eyJ1IjoidG90b2IxMjE3IiwiYSI6ImNsbXo4NHdocjA4dnEya215c
 
 const map = new mapboxgl.Map({
   container: 'map',
-  style: 'mapbox://styles/mapbox/streets-v12',
+  style: 'mapbox://styles/totob1217/cltw5erko00rg01p4571t6o9q',
   center: [-77.0365, 38.8977],
   zoom: 5,
+  cursor: 'crosshair',
+  attributionControl: false,
 });
 
-map.on('load', () => {
+const geolocateControl = new mapboxgl.GeolocateControl({
+  positionOptions: {
+    enableHighAccuracy: true,
+  },
+  trackUserLocation: true,
+  showUserHeading: true,
+  auto: true,
+});
+
+map.addControl(geolocateControl);
+// geolocateControl.trigger();
+
+map.on('load', () => {  
   map.addSource('trains', {
     type: 'geojson',
     data: {
@@ -152,7 +166,7 @@ map.on('load', () => {
   });
 
   map.on('mouseleave', 'trains', () => {
-    map.getCanvas().style.cursor = '';
+    map.getCanvas().style.cursor = 'crosshair'; // Set cursor to 'crosshair' when not hovering over a marker
   });
 
   map.on('mouseenter', 'aircraft', () => {
@@ -160,6 +174,13 @@ map.on('load', () => {
   });
 
   map.on('mouseleave', 'aircraft', () => {
-    map.getCanvas().style.cursor = '';
+    map.getCanvas().style.cursor = 'crosshair'; // Set cursor to 'crosshair' when not hovering over a marker
   });
-});
+
+  // map.on('mousemove', (e) => {
+  //   const features = map.queryRenderedFeatures(e.point);
+  //   map.getCanvas().style.cursor = features.length
+  //     ? 'pointer'
+  //     : 'crosshair'; // Set cursor to 'crosshair' when not hovering over any marker
+  // });
+  });

@@ -9,6 +9,6 @@ html, body {
 }
 
 /* sry */
-.mapboxgl-ctrl-logo {
+.mapboxgl-ctrl-logo,.mapboxgl-control-container{
     display: none !important;
 }

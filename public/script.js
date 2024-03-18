@@ -1,5 +1,4 @@
-mapboxgl.accessToken =
-  "pk.eyJ1IjoidG90b2IxMjE3IiwiYSI6ImNsbXo4NHdocjA4dnEya215cjY0aWJ1cGkifQ.OMzA6Q8VnHLHZP-P8ACBRw";
+mapboxgl.accessToken = "pk.eyJ1IjoidG90b2IxMjE3IiwiYSI6ImNsbXo4NHdocjA4dnEya215cjY0aWJ1cGkifQ.OMzA6Q8VnHLHZP-P8ACBRw";
 
 const map = new mapboxgl.Map({
   container: "map",
@@ -15,14 +14,24 @@ const geolocateControl = new mapboxgl.GeolocateControl({
     enableHighAccuracy: true,
   },
   trackUserLocation: true,
-  showUserHeading: true,
+  showUserLocation: true,
+  fitBoundsOptions: {
+    maxZoom: map.getZoom(),
+  },
 });
 
 map.addControl(geolocateControl);
 
+geolocateControl.on('geolocate', (event) => {
+  console.log(9999999);
+  if (event.target._lastQueryRendered) {
+    return;
+  }
+});
+
 map.on("load", () => {
   geolocateControl.trigger();
-
+  
   map.addSource("trains", {
     type: "geojson",
     data: {
@@ -176,3 +185,4 @@ map.on("load", () => {
     map.getCanvas().style.cursor = "crosshair";
   });
 });
+

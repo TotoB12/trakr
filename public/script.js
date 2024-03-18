@@ -185,4 +185,3 @@ map.on("load", () => {
     map.getCanvas().style.cursor = "crosshair";
   });
 });
-

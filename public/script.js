@@ -23,7 +23,6 @@ const geolocateControl = new mapboxgl.GeolocateControl({
 map.addControl(geolocateControl);
 
 geolocateControl.on('geolocate', (event) => {
-  console.log(9999999);
   if (event.target._lastQueryRendered) {
     return;
   }
@@ -69,6 +68,7 @@ map.on("load", () => {
   });
 
   const updateTrainPositions = () => {
+    console.log("Updating train positions...");
     fetch("https://api-v3.amtraker.com/v3/trains")
       .then((response) => response.json())
       .then((trains) => {
@@ -97,27 +97,29 @@ map.on("load", () => {
   };
 
   const updateAircraftPositions = () => {
-    fetch("https://opensky-network.org/api/states/all")
+    console.log("Updating aircraft positions...");
+    // fetch("/planes?n=90&w=-180&s=-90&e=180")
+    // fetch("/planes?n=39&w=40&s=-78&e=-77")
+    fetch("/planes?n=39&w=40&s=35&e=41")
       .then((response) => response.json())
       .then((data) => {
-        const features = data.states
-          .filter(
-            (state) => state[6] !== null && state[5] !== null, // filter out null lat/lon
-          )
-          .map((state) => ({
-            type: "Feature",
-            geometry: {
-              type: "Point",
-              coordinates: [state[5], state[6]], // lon, lat
-            },
-            properties: {
-              callsign: state[1] || "Unknown Callsign",
-              origin: state[2] || "Unknown",
-              altitude: state[7] !== null ? `${state[7].toFixed(2)} m` : null,
-              speed: state[9] !== null ? `${state[9].toFixed(2)} m/s` : null,
-              heading: state[10] !== null ? `${state[10].toFixed(2)}°` : null,
-            },
-          }));
+        console.log(data);
+        const features = data.map((plane) => ({
+          type: "Feature",
+          geometry: {
+            type: "Point",
+            coordinates: [plane.longitude, plane.latitude], // lon, lat
+          },
+          properties: {
+            callsign: plane.callsign || plane.registration || "Unknown",
+            origin: plane.origin || "Unknown",
+            destination: plane.destination || "Unknown",
+            altitude: plane.altitude !== null ? `${plane.altitude} m` : null,
+            speed: plane.speed !== null ? `${plane.speed} kt` : null,
+            bearing: plane.bearing !== null ? `${plane.bearing}°` : null,
+            model: plane.model || "Unknown",
+          },
+        }));
 
         map.getSource("aircraft").setData({
           type: "FeatureCollection",
@@ -126,10 +128,11 @@ map.on("load", () => {
       })
       .catch((error) => console.error("Error:", error));
   };
+  // https://opensky-network.org/api/states/all
 
   updateAircraftPositions();
 
-  setInterval(updateAircraftPositions, 60000);
+  setInterval(updateAircraftPositions, 5000);
 
   updateTrainPositions();
 

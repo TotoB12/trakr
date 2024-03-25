@@ -22,6 +22,8 @@ app.get('/planes', async (req, res) => {
   let flights = await frApi.getFlights(null, bounds);
   res.json(flights);
 });
+// https://github.com/JeanExtreme002/FlightRadarAPI/blob/main/nodejs/README.md
+// https://www.npmjs.com/package/flightradar24-client
 
 app.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`);
